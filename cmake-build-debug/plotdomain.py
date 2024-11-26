@@ -44,8 +44,8 @@ def plotDomain(xPath, yPath, ax=None, pointsize=0.1, linewidth=0.4):
     
     return ax
 
-xPath = 'xGrid.txt'
-yPath = 'yGrid.txt'
+xPath = 'xGrid_new.txt'
+yPath = 'yGrid_new.txt'
 
 with open(xPath, 'r') as file:
     print("xGrid.txt:")
@@ -63,8 +63,8 @@ def clean_file(filepath):
     with open(filepath, 'w') as file:
         file.write('\n'.join(cleaned_lines))
 
-clean_file('xGrid.txt')
-clean_file('yGrid.txt')
+clean_file('xGrid_new.txt')
+clean_file('yGrid_new.txt')
 
 def load_clean_grid(filepath):
     with open(filepath, 'r') as file:

@@ -28,10 +28,16 @@ public:
         return Point{x + other.x, y + other.y};
     }
     Point operator-(const Point& other) const {
-        return Point{x + other.x, y + other.y};
+        return Point{x - other.x, y - other.y};
+    }
+    bool operator != (const Point& other) const {
+        return (x != other.x || y != other.y);
     }
     friend Point operator*(double scalar, const Point& point) {
         return Point(point.x * scalar, point.y * scalar);
+    }
+    double norm() {
+        return std::sqrt(x*x + y*y);
     }
 };
 

@@ -31,7 +31,6 @@ public:
     Point<double> at(double t) const override {
         return a * (1 - t) + b * t;
     }
-
     void print() {
         std::cout << "StraightLine from (" << a.x << ", " << a.y
                   << ") to (" << b.x << ", " << b.y << ")" << std::endl;
@@ -61,6 +60,7 @@ private:
         return integrator.integrate(normGammaPrime, 0., t, 1e-6, 1e-10);
     };
 
+    // root-finding algorithm
     double findTgivenArcLength(double s) const {
         double t0 = 0.;
         double t1 = 1.;
@@ -84,34 +84,40 @@ private:
 class BottomCurve : public EquationCurve {
 private:
     std::function<double(double)> f;
+    Point<double> leftPoint;
+    Point<double> rightPoint;
+    // these points have to coincide with the bottom points of
+    // leftBoundary and rightBoundary
 public:
+    // the default function is the one given in the assignment
     BottomCurve()
-        : f([](double x) -> double {
-            // if (x >= -10 && x <= -3) {
-            //     return 0.5 * 1 / (1 + std::exp(-3 * (x + 6)));
-            // } else if (x > -3 && x <= 5) {
-            //     return 0.5 * 1 / (1 + std::exp(3 * x));
-            // } else {
-            //     throw std::out_of_range("x is out of the boundary.");
-            // }
-            // return x*x + 5*x - 50;
-            // return 0;
-            double sine_part = std::sin(M_PI * (x + 10) / 15);
-            double gaussian_part = std::exp(-std::pow(x + 2.5, 2) / 50.0);
-            return sine_part * gaussian_part;
+        : leftPoint(Point<double>(-10, 0)),
+        rightPoint(Point<double>(5, 0)),
+        f([](double x) -> double {
+            if (x >= -10 && x <= -3) {
+                return 0.5 * 1 / (1 + std::exp(-3 * (x + 6)));
+            } else if (x > -3 && x <= 5) {
+                return 0.5 * 1 / (1 + std::exp(3 * x));
+            } else {
+                throw std::out_of_range("x is out of the boundary.");
+            }
         }) {}
 
-    BottomCurve(const std::function<double(double)>& func)
-    : f(func) {}
+    BottomCurve(const std::function<double(double)>& func, Point<double> left, Point<double> right)
+    : f(func), leftPoint(left), rightPoint(right) {
+        if (f(leftPoint.x) != leftPoint.y || f(rightPoint.x) != rightPoint.y) {
+            throw std::invalid_argument("f doesn't pass through the given corner points");
+        };
+    }
 
     Point<double> gamma(double t) const override {
-        double x = (1 - t) * (-10) + t * 5;
+        double x = (1 - t) * leftPoint.x + t * rightPoint.x;
         return Point<double>(x, f(x));
     };
 
     Point<double> gammaprime(double t) const override {
-        double dx_dt = 15.;
-        double x = (1 - t) * (-10) + t * 5;
+        double dx_dt = - rightPoint.x + leftPoint.x;
+        double x = (1 - t) * leftPoint.x + t * rightPoint.x;
         // central finite difference
         double dx = 1e-7;
         double df_dx = (f(x + dx) - f(x - dx)) / (2 * dx);
@@ -163,8 +169,30 @@ public:
               topBoundary(Point<double>(-10, 3), Point<double>(5, 3)),
               bottomBoundary() {};
 
-    // Domain(StraightLine& left, StraightLine& right, StraightLine& top, StraightLine& bottom)
-    //     : leftBoundary(left), rightBoundary(right), topBoundary(top), bottomBoundary(bottom){};
+    Domain(StraightLine& left, StraightLine& right, StraightLine& top, BottomCurve& bottom)
+        : leftBoundary(left), rightBoundary(right), topBoundary(top), bottomBoundary(bottom) {
+        // check if domain is closed
+        // double norm = (left.at(0.) - bottom.at(0.)).norm();
+        // std::cout<<norm<<std::endl;
+        // std::cout<<"("<<left.at(0.).x<<", "<<left.at(0.).y<<")"<<std::endl;
+        // std::cout<<"("<<bottom.at(0.).x<<", "<<bottom.at(0.).y<<")"<<std::endl;
+        // Point<double> diff = left.at(0.) - bottom.at(0.);
+        // std::cout << "Difference: (" << diff.x << ", " << diff.y << ")" << std::endl;
+
+        double tol = 1e-4;
+        if ((left.at(0.) - bottom.at(0.)).norm() > tol) {
+            throw std::invalid_argument("The domain is not closed - pp1 doesn't coincide.");
+        }
+        if ((left.at(1.) - top.at(0.)).norm() > tol) {
+            throw std::invalid_argument("The domain is not closed - pp3 doesn't coincide.");
+        }
+        if ((right.at(0.) - bottom.at(1.)).norm() > tol) {
+            throw std::invalid_argument("The domain is not closed - pp2 doesn't coincide.");
+        }
+        if ((right.at(1.) - top.at(1.)).norm() > tol) {
+            throw std::invalid_argument("The domain is not closed - pp4 doesn't coincide.");
+        }
+    };
 
     Domain(const BottomCurve& curve)
         : leftBoundary(Point<double>(-10, 0), Point<double>(-10, 3)),
