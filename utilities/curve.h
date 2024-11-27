@@ -14,6 +14,7 @@
 #include "../../SF2565-Assignments/include/algo.h"
 #include <boost/math/quadrature/gauss_kronrod.hpp>
 #include<cmath>
+#include<unordered_map>
 
 class Curve {
 public:
@@ -42,12 +43,24 @@ public:
     virtual ~EquationCurve() = default;
 
     Point<double> at(double t) const override {
+        // check if t is in cache - COMMENT OUT TO TEST WITHOUT CACHE
+        // auto it = cache.find(t);
+        // if (it != cache.end()) {
+        //     return it->second;
+        // }
+        // compute gamma(t) if t not in cache
         double sTot = arcLength(1.);
         double s = t * sTot;
         double tPrime = findTgivenArcLength(s);
-        return gamma(tPrime);
+        Point<double> gammaTPrime = gamma(tPrime);
+
+        // store result in cache - COMMENT OUT TO TEST WITHOUT CACHE
+        // cache[t] = gammaTPrime;
+
+        return gammaTPrime;
     };
 private:
+    // mutable std::unordered_map<double, Point<double>> cache; // cache for pair (t, gamma(t)) - COMMENT OUT TO TEST WITHOUT CACHE
     virtual Point<double> gamma(double t) const = 0;
     virtual Point<double> gammaprime(double t) const = 0;
 
@@ -171,29 +184,23 @@ public:
 
     Domain(StraightLine& left, StraightLine& right, StraightLine& top, BottomCurve& bottom)
         : leftBoundary(left), rightBoundary(right), topBoundary(top), bottomBoundary(bottom) {
-        // check if domain is closed
-        // double norm = (left.at(0.) - bottom.at(0.)).norm();
-        // std::cout<<norm<<std::endl;
-        // std::cout<<"("<<left.at(0.).x<<", "<<left.at(0.).y<<")"<<std::endl;
-        // std::cout<<"("<<bottom.at(0.).x<<", "<<bottom.at(0.).y<<")"<<std::endl;
-        // Point<double> diff = left.at(0.) - bottom.at(0.);
-        // std::cout << "Difference: (" << diff.x << ", " << diff.y << ")" << std::endl;
 
         double tol = 1e-4;
         if ((left.at(0.) - bottom.at(0.)).norm() > tol) {
-            throw std::invalid_argument("The domain is not closed - pp1 doesn't coincide.");
+            throw std::invalid_argument("The domain is not closed in the bottom-left corner.");
         }
         if ((left.at(1.) - top.at(0.)).norm() > tol) {
-            throw std::invalid_argument("The domain is not closed - pp3 doesn't coincide.");
+            throw std::invalid_argument("The domain is not closed in the top-left corner.");
         }
         if ((right.at(0.) - bottom.at(1.)).norm() > tol) {
-            throw std::invalid_argument("The domain is not closed - pp2 doesn't coincide.");
+            throw std::invalid_argument("The domain is not closed in the bottom-right corner.");
         }
         if ((right.at(1.) - top.at(1.)).norm() > tol) {
-            throw std::invalid_argument("The domain is not closed - pp4 doesn't coincide.");
+            throw std::invalid_argument("The domain is not closed in the top-right corner.");
         }
     };
 
+    // assume corner points given in the assignment, user can define curve of the bottom boundary
     Domain(const BottomCurve& curve)
         : leftBoundary(Point<double>(-10, 0), Point<double>(-10, 3)),
           rightBoundary(Point<double>(5, 0), Point<double>(5, 3)),
